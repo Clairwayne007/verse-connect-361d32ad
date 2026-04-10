@@ -17,7 +17,9 @@ export type Database = {
       deposits: {
         Row: {
           amount_usd: number
+          balance_credited: boolean | null
           created_at: string
+          crypto_amount: number | null
           crypto_currency: string | null
           id: string
           invoice_id: string | null
@@ -29,7 +31,9 @@ export type Database = {
         }
         Insert: {
           amount_usd: number
+          balance_credited?: boolean | null
           created_at?: string
+          crypto_amount?: number | null
           crypto_currency?: string | null
           id?: string
           invoice_id?: string | null
@@ -41,7 +45,9 @@ export type Database = {
         }
         Update: {
           amount_usd?: number
+          balance_credited?: boolean | null
           created_at?: string
+          crypto_amount?: number | null
           crypto_currency?: string | null
           id?: string
           invoice_id?: string | null
