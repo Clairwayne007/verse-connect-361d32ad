@@ -251,6 +251,10 @@ export type Database = {
         Args: { p_amount: number; p_user_id: string }
         Returns: undefined
       }
+      debit_user_balance: {
+        Args: { p_amount: number; p_user_id: string }
+        Returns: boolean
+      }
       get_user_role: { Args: { _user_id: string }; Returns: string }
       has_role: {
         Args: {
