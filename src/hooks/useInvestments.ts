@@ -96,6 +96,7 @@ export const useInvestments = () => {
       return { success: false, error: "Not authenticated" };
     }
 
+    try {
       // Debit balance server-side (atomic)
       const { data: debited, error: debitError } = await supabase.rpc("debit_user_balance", {
         p_user_id: session.user.id,
