@@ -14,16 +14,244 @@ export type Database = {
   }
   public: {
     Tables: {
-      [_ in never]: never
+      deposits: {
+        Row: {
+          amount_usd: number
+          created_at: string
+          crypto_currency: string | null
+          id: string
+          invoice_id: string | null
+          invoice_url: string | null
+          payment_id: string | null
+          status: string | null
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          amount_usd: number
+          created_at?: string
+          crypto_currency?: string | null
+          id?: string
+          invoice_id?: string | null
+          invoice_url?: string | null
+          payment_id?: string | null
+          status?: string | null
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          amount_usd?: number
+          created_at?: string
+          crypto_currency?: string | null
+          id?: string
+          invoice_id?: string | null
+          invoice_url?: string | null
+          payment_id?: string | null
+          status?: string | null
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
+      email_templates: {
+        Row: {
+          created_at: string
+          description: string | null
+          html_content: string
+          id: string
+          name: string
+          subject: string
+          template_key: string | null
+          updated_at: string
+        }
+        Insert: {
+          created_at?: string
+          description?: string | null
+          html_content: string
+          id?: string
+          name: string
+          subject: string
+          template_key?: string | null
+          updated_at?: string
+        }
+        Update: {
+          created_at?: string
+          description?: string | null
+          html_content?: string
+          id?: string
+          name?: string
+          subject?: string
+          template_key?: string | null
+          updated_at?: string
+        }
+        Relationships: []
+      }
+      investments: {
+        Row: {
+          amount: number
+          amount_usd: number | null
+          created_at: string
+          daily_roi: number
+          duration_days: number | null
+          earned_amount: number | null
+          end_date: string | null
+          id: string
+          plan_id: string | null
+          plan_name: string
+          roi_percent: number | null
+          start_date: string | null
+          status: string | null
+          total_earned: number | null
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          amount: number
+          amount_usd?: number | null
+          created_at?: string
+          daily_roi?: number
+          duration_days?: number | null
+          earned_amount?: number | null
+          end_date?: string | null
+          id?: string
+          plan_id?: string | null
+          plan_name: string
+          roi_percent?: number | null
+          start_date?: string | null
+          status?: string | null
+          total_earned?: number | null
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          amount?: number
+          amount_usd?: number | null
+          created_at?: string
+          daily_roi?: number
+          duration_days?: number | null
+          earned_amount?: number | null
+          end_date?: string | null
+          id?: string
+          plan_id?: string | null
+          plan_name?: string
+          roi_percent?: number | null
+          start_date?: string | null
+          status?: string | null
+          total_earned?: number | null
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
+      profiles: {
+        Row: {
+          avatar_url: string | null
+          balance: number | null
+          created_at: string
+          email: string
+          id: string
+          kyc_status: string | null
+          name: string
+          phone: string | null
+          reviewed: boolean | null
+          updated_at: string
+          welcome_email_sent: boolean | null
+        }
+        Insert: {
+          avatar_url?: string | null
+          balance?: number | null
+          created_at?: string
+          email: string
+          id: string
+          kyc_status?: string | null
+          name?: string
+          phone?: string | null
+          reviewed?: boolean | null
+          updated_at?: string
+          welcome_email_sent?: boolean | null
+        }
+        Update: {
+          avatar_url?: string | null
+          balance?: number | null
+          created_at?: string
+          email?: string
+          id?: string
+          kyc_status?: string | null
+          name?: string
+          phone?: string | null
+          reviewed?: boolean | null
+          updated_at?: string
+          welcome_email_sent?: boolean | null
+        }
+        Relationships: []
+      }
+      user_roles: {
+        Row: {
+          id: string
+          role: Database["public"]["Enums"]["app_role"]
+          user_id: string
+        }
+        Insert: {
+          id?: string
+          role?: Database["public"]["Enums"]["app_role"]
+          user_id: string
+        }
+        Update: {
+          id?: string
+          role?: Database["public"]["Enums"]["app_role"]
+          user_id?: string
+        }
+        Relationships: []
+      }
+      withdrawals: {
+        Row: {
+          amount_usd: number
+          created_at: string
+          crypto_currency: string | null
+          id: string
+          status: string | null
+          updated_at: string
+          user_id: string
+          wallet_address: string
+        }
+        Insert: {
+          amount_usd: number
+          created_at?: string
+          crypto_currency?: string | null
+          id?: string
+          status?: string | null
+          updated_at?: string
+          user_id: string
+          wallet_address: string
+        }
+        Update: {
+          amount_usd?: number
+          created_at?: string
+          crypto_currency?: string | null
+          id?: string
+          status?: string | null
+          updated_at?: string
+          user_id?: string
+          wallet_address?: string
+        }
+        Relationships: []
+      }
     }
     Views: {
       [_ in never]: never
     }
     Functions: {
-      [_ in never]: never
+      get_user_role: { Args: { _user_id: string }; Returns: string }
+      has_role: {
+        Args: {
+          _role: Database["public"]["Enums"]["app_role"]
+          _user_id: string
+        }
+        Returns: boolean
+      }
     }
     Enums: {
-      [_ in never]: never
+      app_role: "admin" | "moderator" | "user"
     }
     CompositeTypes: {
       [_ in never]: never
@@ -150,6 +378,8 @@ export type CompositeTypes<
 
 export const Constants = {
   public: {
-    Enums: {},
+    Enums: {
+      app_role: ["admin", "moderator", "user"],
+    },
   },
 } as const
