@@ -84,7 +84,7 @@ const Login = () => {
     try {
       // Generate password reset link via Supabase
       const { data, error } = await supabase.auth.resetPasswordForEmail(forgotPasswordEmail, {
-        redirectTo: "https://iamversetrade.com/reset-password",
+        redirectTo: `${window.location.origin}/reset-password`,
       });
 
       if (error) {
