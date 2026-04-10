@@ -218,7 +218,7 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
         password,
         options: {
           data: { name },
-          emailRedirectTo: "https://iamversetrade.com/dashboard",
+          emailRedirectTo: `${window.location.origin}/dashboard`,
         },
       });
 

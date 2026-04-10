@@ -97,17 +97,17 @@ export const useInvestments = () => {
     }
 
     try {
-      const { data: profile, error: profileError } = await supabase
-        .from("profiles")
-        .select("balance")
-        .eq("id", session.user.id)
-        .single();
+      // Debit balance server-side (atomic)
+      const { data: debited, error: debitError } = await supabase.rpc("debit_user_balance", {
+        p_user_id: session.user.id,
+        p_amount: amountUsd,
+      });
 
-      if (profileError || !profile) {
-        return { success: false, error: "Failed to fetch profile" };
+      if (debitError) {
+        return { success: false, error: "Failed to process balance" };
       }
 
-      if (Number(profile.balance) < amountUsd) {
+      if (!debited) {
         return { success: false, error: "Insufficient balance" };
       }
 
@@ -132,6 +132,11 @@ export const useInvestments = () => {
         .single();
 
       if (error) {
+        // Refund on failure
+        await supabase.rpc("credit_user_balance", {
+          p_user_id: session.user.id,
+          p_amount: amountUsd,
+        });
         console.error("Error creating investment:", error);
         return { success: false, error: error.message };
       }
