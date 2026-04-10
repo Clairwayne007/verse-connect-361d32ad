@@ -1,0 +1,6 @@
+-- Add optional profile details fields
+ALTER TABLE public.profiles
+  ADD COLUMN IF NOT EXISTS sex TEXT NULL,
+  ADD COLUMN IF NOT EXISTS country TEXT NULL,
+  ADD COLUMN IF NOT EXISTS age INTEGER NULL,
+  ADD COLUMN IF NOT EXISTS occupation TEXT NULL;
