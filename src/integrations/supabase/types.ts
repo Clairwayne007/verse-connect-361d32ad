@@ -56,26 +56,32 @@ export type Database = {
       email_templates: {
         Row: {
           created_at: string
+          description: string | null
           html_content: string
           id: string
           name: string
           subject: string
+          template_key: string | null
           updated_at: string
         }
         Insert: {
           created_at?: string
+          description?: string | null
           html_content: string
           id?: string
           name: string
           subject: string
+          template_key?: string | null
           updated_at?: string
         }
         Update: {
           created_at?: string
+          description?: string | null
           html_content?: string
           id?: string
           name?: string
           subject?: string
+          template_key?: string | null
           updated_at?: string
         }
         Relationships: []
@@ -83,11 +89,16 @@ export type Database = {
       investments: {
         Row: {
           amount: number
+          amount_usd: number | null
           created_at: string
           daily_roi: number
+          duration_days: number | null
+          earned_amount: number | null
           end_date: string | null
           id: string
+          plan_id: string | null
           plan_name: string
+          roi_percent: number | null
           start_date: string | null
           status: string | null
           total_earned: number | null
@@ -96,11 +107,16 @@ export type Database = {
         }
         Insert: {
           amount: number
+          amount_usd?: number | null
           created_at?: string
           daily_roi?: number
+          duration_days?: number | null
+          earned_amount?: number | null
           end_date?: string | null
           id?: string
+          plan_id?: string | null
           plan_name: string
+          roi_percent?: number | null
           start_date?: string | null
           status?: string | null
           total_earned?: number | null
@@ -109,11 +125,16 @@ export type Database = {
         }
         Update: {
           amount?: number
+          amount_usd?: number | null
           created_at?: string
           daily_roi?: number
+          duration_days?: number | null
+          earned_amount?: number | null
           end_date?: string | null
           id?: string
+          plan_id?: string | null
           plan_name?: string
+          roi_percent?: number | null
           start_date?: string | null
           status?: string | null
           total_earned?: number | null
@@ -132,6 +153,7 @@ export type Database = {
           kyc_status: string | null
           name: string
           phone: string | null
+          reviewed: boolean | null
           updated_at: string
           welcome_email_sent: boolean | null
         }
@@ -144,6 +166,7 @@ export type Database = {
           kyc_status?: string | null
           name?: string
           phone?: string | null
+          reviewed?: boolean | null
           updated_at?: string
           welcome_email_sent?: boolean | null
         }
@@ -156,6 +179,7 @@ export type Database = {
           kyc_status?: string | null
           name?: string
           phone?: string | null
+          reviewed?: boolean | null
           updated_at?: string
           welcome_email_sent?: boolean | null
         }
