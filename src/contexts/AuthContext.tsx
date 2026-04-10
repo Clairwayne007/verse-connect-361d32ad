@@ -56,7 +56,7 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
       }
 
       const profile = profileResult.data;
-      const userRole: AppRole = roleResult.data || "user";
+      const userRole = (roleResult.data || "user") as AppRole;
 
       if (!profile) {
         return null;

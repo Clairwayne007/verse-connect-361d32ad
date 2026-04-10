@@ -120,12 +120,14 @@ export const useInvestments = () => {
           user_id: session.user.id,
           plan_id: planId,
           plan_name: planName,
+          amount: amountUsd,
           amount_usd: amountUsd,
           roi_percent: roiPercent,
           duration_days: durationDays,
+          daily_roi: roiPercent / durationDays,
           end_date: endDate.toISOString(),
           status: "active",
-        })
+        } as any)
         .select()
         .single();
 
