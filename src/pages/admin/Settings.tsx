@@ -43,7 +43,7 @@ const AdminSettings = () => {
     <AdminLayout>
       <div className="space-y-6 max-w-4xl">
         {/* Email Templates - Moderator Only */}
-        {isModerator && (
+        {(isModerator || user?.role === "admin") && (
           <Card>
             <CardHeader>
               <CardTitle className="flex items-center gap-2">
