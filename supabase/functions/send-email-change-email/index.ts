@@ -1,4 +1,3 @@
-import { serve } from "https://deno.land/std@0.190.0/http/server.ts";
 import { createClient } from "npm:@supabase/supabase-js@2";
 
 const corsHeaders = {
@@ -7,13 +6,9 @@ const corsHeaders = {
     "authorization, x-client-info, apikey, content-type, x-supabase-client-platform, x-supabase-client-platform-version, x-supabase-client-runtime, x-supabase-client-runtime-version",
 };
 
-interface EmailChangeRequest {
-  email: string;
-  newEmail: string;
-  name: string;
-}
+const GATEWAY_URL = "https://connector-gateway.lovable.dev/resend";
 
-const handler = async (req: Request): Promise<Response> => {
+Deno.serve(async (req) => {
   if (req.method === "OPTIONS") {
     return new Response(null, { headers: corsHeaders });
   }
@@ -21,9 +16,11 @@ const handler = async (req: Request): Promise<Response> => {
   try {
     const resendApiKey = Deno.env.get("RESEND_API_KEY");
     if (!resendApiKey) throw new Error("RESEND_API_KEY is not configured");
+    const lovableApiKey = Deno.env.get("LOVABLE_API_KEY");
+    if (!lovableApiKey) throw new Error("LOVABLE_API_KEY is not configured");
 
-    const { email, newEmail, name }: EmailChangeRequest = await req.json();
-    if (!email || !newEmail) throw new Error("Missing required fields: email and newEmail");
+    const { email, newEmail, name } = await req.json();
+    if (!email || !newEmail) throw new Error("Missing required fields");
 
     const userName = name || "there";
 
@@ -34,19 +31,27 @@ const handler = async (req: Request): Promise<Response> => {
     const { data: template } = await supabase
       .from("email_templates")
       .select("subject, html_content")
-      .eq("template_key", "email_changed")
+      .eq("template_key", "email_change")
       .single();
 
     const subject = template?.subject || "Email Address Changed - Iamverse";
-    let htmlContent = template?.html_content || `<p>Hi ${userName},</p><p>Your Iamverse email has been changed to <strong>${newEmail}</strong>.</p><p>If you didn't make this change, please contact support immediately.</p>`;
+    let htmlContent =
+      template?.html_content ||
+      `<div style="font-family:Arial,sans-serif;max-width:600px;margin:0 auto;padding:20px;">
+<h1 style="color:#0ea5e9;">Namaste, ${userName}!</h1>
+<p>Your email has been changed to <strong>${newEmail}</strong>.</p>
+<p style="color:#999;font-size:12px;text-align:center;">© 2022 Iamverse</p>
+</div>`;
 
-    htmlContent = htmlContent.replace(/\{\{name\}\}/g, userName);
-    htmlContent = htmlContent.replace(/\{\{newEmail\}\}/g, newEmail);
+    htmlContent = htmlContent
+      .replace(/\{\{name\}\}/g, userName)
+      .replace(/\{\{newEmail\}\}/g, newEmail);
 
-    const response = await fetch("https://api.resend.com/emails", {
+    const response = await fetch(`${GATEWAY_URL}/emails`, {
       method: "POST",
       headers: {
-        Authorization: `Bearer ${resendApiKey}`,
+        Authorization: `Bearer ${lovableApiKey}`,
+        "X-Connection-Api-Key": resendApiKey,
         "Content-Type": "application/json",
       },
       body: JSON.stringify({
@@ -61,28 +66,24 @@ const handler = async (req: Request): Promise<Response> => {
 
     if (!response.ok) {
       if (response.status === 403 && data?.name === "validation_error") {
-        console.log("Resend send blocked (likely unverified domain):", data);
         return new Response(
-          JSON.stringify({ success: false, skipped: true, reason: "RESEND_VALIDATION_ERROR", data }),
-          { status: 200, headers: { "Content-Type": "application/json", ...corsHeaders } },
+          JSON.stringify({ success: false, skipped: true }),
+          { status: 200, headers: { "Content-Type": "application/json", ...corsHeaders } }
         );
       }
       throw new Error(`Resend API error: ${JSON.stringify(data)}`);
     }
 
-    console.log("Email change notification sent successfully:", data);
     return new Response(JSON.stringify({ success: true, data }), {
       status: 200,
       headers: { "Content-Type": "application/json", ...corsHeaders },
     });
   } catch (error: unknown) {
-    console.error("Error in send-email-change-email function:", error);
+    console.error("Error:", error);
     const errorMessage = error instanceof Error ? error.message : "Unknown error";
     return new Response(JSON.stringify({ success: false, error: errorMessage }), {
       status: 500,
       headers: { "Content-Type": "application/json", ...corsHeaders },
     });
   }
-};
-
-serve(handler);
+});
