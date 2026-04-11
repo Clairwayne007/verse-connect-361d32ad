@@ -71,7 +71,6 @@ Deno.serve(async (req) => {
     await adminClient.from("investments").delete().eq("user_id", user_id);
     await adminClient.from("deposits").delete().eq("user_id", user_id);
     await adminClient.from("withdrawals").delete().eq("user_id", user_id);
-    await adminClient.from("notifications").delete().eq("user_id", user_id);
     await adminClient.from("user_roles").delete().eq("user_id", user_id);
     await adminClient.from("profiles").delete().eq("id", user_id);
 
@@ -86,8 +85,9 @@ Deno.serve(async (req) => {
     return new Response(JSON.stringify({ success: true }), {
       headers: { ...corsHeaders, "Content-Type": "application/json" },
     });
-  } catch (error) {
-    return new Response(JSON.stringify({ error: error.message }), {
+  } catch (error: unknown) {
+    const message = error instanceof Error ? error.message : "Unknown error";
+    return new Response(JSON.stringify({ error: message }), {
       status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" },
     });
   }

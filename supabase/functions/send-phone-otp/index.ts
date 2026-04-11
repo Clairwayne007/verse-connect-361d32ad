@@ -56,13 +56,11 @@ serve(async (req) => {
     await supabase
       .from("profiles")
       .update({
-        phone_number,
-        phone_verified: false,
+        phone,
       })
       .eq("id", user.id);
 
     // Store OTP temporarily (expires in 10 minutes)
-    // We'll use a simple approach: store in the user's metadata
     const otpData = {
       code: otp,
       phone: phone_number,
@@ -103,9 +101,10 @@ serve(async (req) => {
     return new Response(JSON.stringify({ success: true }), {
       headers: { ...corsHeaders, "Content-Type": "application/json" },
     });
-  } catch (error) {
+  } catch (error: unknown) {
     console.error("Error:", error);
-    return new Response(JSON.stringify({ error: error.message }), {
+    const message = error instanceof Error ? error.message : "Unknown error";
+    return new Response(JSON.stringify({ error: message }), {
       status: 500,
       headers: { ...corsHeaders, "Content-Type": "application/json" },
     });
