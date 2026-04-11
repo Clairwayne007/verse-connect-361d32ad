@@ -1,4 +1,3 @@
-import { serve } from "https://deno.land/std@0.190.0/http/server.ts";
 import { createClient } from "npm:@supabase/supabase-js@2";
 
 const corsHeaders = {
@@ -7,12 +6,14 @@ const corsHeaders = {
     "authorization, x-client-info, apikey, content-type, x-supabase-client-platform, x-supabase-client-platform-version, x-supabase-client-runtime, x-supabase-client-runtime-version",
 };
 
+const GATEWAY_URL = "https://connector-gateway.lovable.dev/resend";
+
 interface WelcomeEmailRequest {
   email: string;
   name: string;
 }
 
-const handler = async (req: Request): Promise<Response> => {
+Deno.serve(async (req) => {
   if (req.method === "OPTIONS") {
     return new Response(null, { headers: corsHeaders });
   }
@@ -21,6 +22,11 @@ const handler = async (req: Request): Promise<Response> => {
     const resendApiKey = Deno.env.get("RESEND_API_KEY");
     if (!resendApiKey) {
       throw new Error("RESEND_API_KEY is not configured");
+    }
+
+    const lovableApiKey = Deno.env.get("LOVABLE_API_KEY");
+    if (!lovableApiKey) {
+      throw new Error("LOVABLE_API_KEY is not configured");
     }
 
     const { email, name }: WelcomeEmailRequest = await req.json();
@@ -40,15 +46,18 @@ const handler = async (req: Request): Promise<Response> => {
       .single();
 
     const subject = template?.subject || "Welcome to Iamverse! 🎉";
-    let htmlContent = template?.html_content || `<p>Hi ${userName}!</p><p>Welcome to Iamverse! Your account has been created successfully.</p><p>Visit <a href="https://iamversetrade.com/dashboard" style="color:#2563eb;text-decoration:underline;">your dashboard</a> to get started.</p>`;
+    let htmlContent =
+      template?.html_content ||
+      `<p>Namaste ${userName}!</p><p>Welcome to Iamverse! Your account has been created successfully.</p><p>Visit <a href="https://iamversetrade.com/dashboard">your dashboard</a> to get started.</p><p>© 2022 Iamverse</p>`;
 
     // Replace placeholders
     htmlContent = htmlContent.replace(/\{\{name\}\}/g, userName);
 
-    const response = await fetch("https://api.resend.com/emails", {
+    const response = await fetch(`${GATEWAY_URL}/emails`, {
       method: "POST",
       headers: {
-        Authorization: `Bearer ${resendApiKey}`,
+        Authorization: `Bearer ${lovableApiKey}`,
+        "X-Connection-Api-Key": resendApiKey,
         "Content-Type": "application/json",
       },
       body: JSON.stringify({
@@ -66,7 +75,7 @@ const handler = async (req: Request): Promise<Response> => {
         console.log("Resend send blocked (likely unverified domain):", data);
         return new Response(
           JSON.stringify({ success: false, skipped: true, reason: "RESEND_VALIDATION_ERROR", data }),
-          { status: 200, headers: { "Content-Type": "application/json", ...corsHeaders } },
+          { status: 200, headers: { "Content-Type": "application/json", ...corsHeaders } }
         );
       }
       throw new Error(`Resend API error: ${JSON.stringify(data)}`);
@@ -85,6 +94,4 @@ const handler = async (req: Request): Promise<Response> => {
       headers: { "Content-Type": "application/json", ...corsHeaders },
     });
   }
-};
-
-serve(handler);
+});

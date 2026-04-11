@@ -1,4 +1,3 @@
-import { serve } from "https://deno.land/std@0.190.0/http/server.ts";
 import { createClient } from "npm:@supabase/supabase-js@2";
 
 const corsHeaders = {
@@ -7,12 +6,9 @@ const corsHeaders = {
     "authorization, x-client-info, apikey, content-type, x-supabase-client-platform, x-supabase-client-platform-version, x-supabase-client-runtime, x-supabase-client-runtime-version",
 };
 
-interface PasswordResetRequest {
-  email: string;
-  resetUrl: string;
-}
+const GATEWAY_URL = "https://connector-gateway.lovable.dev/resend";
 
-const handler = async (req: Request): Promise<Response> => {
+Deno.serve(async (req) => {
   if (req.method === "OPTIONS") {
     return new Response(null, { headers: corsHeaders });
   }
@@ -20,13 +16,23 @@ const handler = async (req: Request): Promise<Response> => {
   try {
     const resendApiKey = Deno.env.get("RESEND_API_KEY");
     if (!resendApiKey) throw new Error("RESEND_API_KEY is not configured");
+    const lovableApiKey = Deno.env.get("LOVABLE_API_KEY");
+    if (!lovableApiKey) throw new Error("LOVABLE_API_KEY is not configured");
 
-    const { email, resetUrl }: PasswordResetRequest = await req.json();
-    if (!email || !resetUrl) throw new Error("Missing required fields: email and resetUrl");
+    const { email, resetUrl } = await req.json();
+    if (!email || !resetUrl) throw new Error("Missing required fields");
 
     const supabaseUrl = Deno.env.get("SUPABASE_URL")!;
     const supabaseKey = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
     const supabase = createClient(supabaseUrl, supabaseKey);
+
+    const { data: profile } = await supabase
+      .from("profiles")
+      .select("name")
+      .eq("email", email)
+      .maybeSingle();
+
+    const userName = profile?.name || "there";
 
     const { data: template } = await supabase
       .from("email_templates")
@@ -35,14 +41,24 @@ const handler = async (req: Request): Promise<Response> => {
       .single();
 
     const subject = template?.subject || "Reset Your Password - Iamverse";
-    let htmlContent = template?.html_content || `<p>Hi there,</p><p>Click <a href="${resetUrl}" style="color:#2563eb;text-decoration:underline;">here</a> to reset your password on Iamverse.</p><p>If you didn't request this, you can safely ignore this email.</p>`;
+    let htmlContent =
+      template?.html_content ||
+      `<div style="font-family:Arial,sans-serif;max-width:600px;margin:0 auto;padding:20px;">
+<h1 style="color:#0ea5e9;">Namaste, ${userName}!</h1>
+<p>Click the button below to reset your password.</p>
+<div style="text-align:center;margin:24px 0;"><a href="${resetUrl}" style="background:#0ea5e9;color:#fff;padding:12px 32px;border-radius:8px;text-decoration:none;font-weight:bold;display:inline-block;">Reset Password</a></div>
+<p style="color:#999;font-size:12px;text-align:center;">© 2022 Iamverse</p>
+</div>`;
 
-    htmlContent = htmlContent.replace(/\{\{resetUrl\}\}/g, resetUrl);
+    htmlContent = htmlContent
+      .replace(/\{\{name\}\}/g, userName)
+      .replace(/\{\{resetUrl\}\}/g, resetUrl);
 
-    const response = await fetch("https://api.resend.com/emails", {
+    const response = await fetch(`${GATEWAY_URL}/emails`, {
       method: "POST",
       headers: {
-        Authorization: `Bearer ${resendApiKey}`,
+        Authorization: `Bearer ${lovableApiKey}`,
+        "X-Connection-Api-Key": resendApiKey,
         "Content-Type": "application/json",
       },
       body: JSON.stringify({
@@ -57,28 +73,24 @@ const handler = async (req: Request): Promise<Response> => {
 
     if (!response.ok) {
       if (response.status === 403 && data?.name === "validation_error") {
-        console.log("Resend send blocked (likely unverified domain):", data);
         return new Response(
-          JSON.stringify({ success: false, skipped: true, reason: "RESEND_VALIDATION_ERROR", data }),
-          { status: 200, headers: { "Content-Type": "application/json", ...corsHeaders } },
+          JSON.stringify({ success: false, skipped: true }),
+          { status: 200, headers: { "Content-Type": "application/json", ...corsHeaders } }
         );
       }
       throw new Error(`Resend API error: ${JSON.stringify(data)}`);
     }
 
-    console.log("Password reset email sent successfully:", data);
     return new Response(JSON.stringify({ success: true, data }), {
       status: 200,
       headers: { "Content-Type": "application/json", ...corsHeaders },
     });
   } catch (error: unknown) {
-    console.error("Error in send-password-reset function:", error);
+    console.error("Error:", error);
     const errorMessage = error instanceof Error ? error.message : "Unknown error";
     return new Response(JSON.stringify({ success: false, error: errorMessage }), {
       status: 500,
       headers: { "Content-Type": "application/json", ...corsHeaders },
     });
   }
-};
-
-serve(handler);
+});

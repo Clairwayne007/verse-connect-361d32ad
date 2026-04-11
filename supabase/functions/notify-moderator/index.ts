@@ -1,4 +1,3 @@
-import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 import { createClient } from "npm:@supabase/supabase-js@2";
 
 const corsHeaders = {
@@ -6,7 +5,9 @@ const corsHeaders = {
   "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type",
 };
 
-serve(async (req) => {
+const GATEWAY_URL = "https://connector-gateway.lovable.dev/resend";
+
+Deno.serve(async (req) => {
   if (req.method === "OPTIONS") {
     return new Response(null, { headers: corsHeaders });
   }
@@ -14,7 +15,8 @@ serve(async (req) => {
   try {
     const supabaseUrl = Deno.env.get("SUPABASE_URL")!;
     const supabaseKey = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
-    const resendKey = Deno.env.get("RESEND_API_KEY")!;
+    const resendApiKey = Deno.env.get("RESEND_API_KEY");
+    const lovableApiKey = Deno.env.get("LOVABLE_API_KEY");
 
     const supabase = createClient(supabaseUrl, supabaseKey);
 
@@ -27,7 +29,6 @@ serve(async (req) => {
       .eq("role", "moderator");
 
     if (!modRoles || modRoles.length === 0) {
-      console.log("No moderators found to notify");
       return new Response(JSON.stringify({ success: true, message: "No moderators to notify" }), {
         headers: { ...corsHeaders, "Content-Type": "application/json" },
       });
@@ -41,44 +42,36 @@ serve(async (req) => {
       .select("id, email")
       .in("id", modUserIds);
 
-    // Insert in-app notifications for each moderator
-    const notifications = modUserIds.map((userId) => ({
-      user_id: userId,
-      title: `${transaction_type} Confirmed`,
-      message: `A ${transaction_type.toLowerCase()} of $${amount} by ${user_email} has been confirmed. (ID: ${transaction_id?.slice(0, 8)})`,
-    }));
-
-    // Use service role to insert notifications directly
-    await supabase.from("notifications").insert(notifications);
-
-    // Send email to each moderator
-    if (modProfiles && modProfiles.length > 0) {
+    // Send email to each moderator via Resend gateway
+    if (modProfiles && modProfiles.length > 0 && resendApiKey && lovableApiKey) {
       for (const mod of modProfiles) {
         try {
-          await fetch("https://api.resend.com/emails", {
+          await fetch(`${GATEWAY_URL}/emails`, {
             method: "POST",
             headers: {
-              Authorization: `Bearer ${resendKey}`,
+              Authorization: `Bearer ${lovableApiKey}`,
+              "X-Connection-Api-Key": resendApiKey,
               "Content-Type": "application/json",
             },
             body: JSON.stringify({
-              from: "IAMVERSE <noreply@iamversetrade.com>",
+              from: "Iamverse <noreply@iamversetrade.com>",
               to: [mod.email],
               subject: `Transaction Alert: ${transaction_type} Confirmed - $${amount}`,
               html: `
-                <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto; padding: 20px;">
-                  <h2 style="color: #0ea5e9;">Transaction Notification</h2>
-                  <p>A transaction has been successfully confirmed:</p>
-                  <div style="background: #f4f4f5; padding: 16px; border-radius: 8px; margin: 16px 0;">
-                    <p><strong>Type:</strong> ${transaction_type}</p>
-                    <p><strong>Amount:</strong> $${amount}</p>
-                    <p><strong>User:</strong> ${user_email}</p>
-                    <p><strong>Transaction ID:</strong> ${transaction_id}</p>
-                    <p><strong>Time:</strong> ${new Date().toLocaleString()}</p>
-                  </div>
-                  <p style="color: #71717a; font-size: 12px;">This is an automated notification from IAMVERSE Trading.</p>
-                </div>
-              `,
+<div style="font-family:Arial,sans-serif;max-width:600px;margin:0 auto;padding:20px;background:#ffffff;">
+<div style="text-align:center;margin-bottom:24px;"><img src="https://iamversetrade.com/iamverse-logo.png" alt="Iamverse" style="height:48px;" /></div>
+<h2 style="color:#0ea5e9;">Transaction Notification</h2>
+<p>Namaste! A transaction has been confirmed:</p>
+<div style="background:#f4f4f5;padding:16px;border-radius:8px;margin:16px 0;">
+<p><strong>Type:</strong> ${transaction_type}</p>
+<p><strong>Amount:</strong> $${amount}</p>
+<p><strong>User:</strong> ${user_email}</p>
+<p><strong>Transaction ID:</strong> ${transaction_id}</p>
+<p><strong>Time:</strong> ${new Date().toLocaleString()}</p>
+</div>
+<hr style="border:none;border-top:1px solid #e5e7eb;margin:24px 0;" />
+<p style="color:#999;font-size:12px;text-align:center;">© 2022 Iamverse Trading | <a href="https://iamversetrade.com" style="color:#0ea5e9;">iamversetrade.com</a></p>
+</div>`,
             }),
           });
         } catch (emailErr) {
